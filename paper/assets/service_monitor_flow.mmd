@@ -1,0 +1,7 @@
+flowchart TB
+    A[监控脚本] --> B[检查API端口]
+    A --> C[检查Web端口]
+    A --> D[检查GPU]
+    B --> E[输出状态报告]
+    C --> E
+    D --> E

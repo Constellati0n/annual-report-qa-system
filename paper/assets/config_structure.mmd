@@ -1,0 +1,7 @@
+flowchart TB
+    A[config.yaml] --> B[models配置]
+    A --> C[rag配置]
+    A --> D[server配置]
+    B --> E[LLM/Embedding]
+    C --> F[向量库/检索]
+    D --> G[API/Web端口]

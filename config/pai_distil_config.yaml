@@ -1,0 +1,144 @@
+# PAI-DistilQwen2.5-7B-Instruct 训练配置
+# 适用于阿里云PAI平台
+
+# 模型配置
+model:
+  name: "alibaba-pai/pai-distilqwen2.5-7b-instruct"
+  base_model: "alibaba-pai/pai-distilqwen2.5-7b-instruct"
+  output_dir: "./models/pai_distil_finetuned"
+  
+  # 模型加载配置
+  load_in_4bit: true
+  load_in_8bit: false
+  torch_dtype: "bfloat16"  # 模型原生格式为bf16
+  device_map: "auto"
+  trust_remote_code: true
+
+# 训练算法配置
+training:
+  # 训练策略: sft (监督微调) 或 dpo (直接偏好优化)
+  training_strategy: "sft"
+  
+  # 基础训练参数
+  num_epochs: 3
+  batch_size: 4
+  gradient_accumulation_steps: 4
+  learning_rate: 2.0e-4
+  warmup_ratio: 0.03
+  weight_decay: 0.01
+  max_grad_norm: 0.3
+  
+  # 序列长度
+  max_seq_length: 2048
+  
+  # 保存配置
+  save_steps: 500
+  eval_steps: 500
+  logging_steps: 10
+  save_total_limit: 3
+  
+  # 评估配置
+  evaluation_strategy: "steps"
+  load_best_model_at_end: true
+  metric_for_best_model: "eval_loss"
+  
+  # 优化器
+  optim: "paged_adamw_8bit"  # 4bit训练时使用
+  lr_scheduler_type: "cosine"
+  
+  # 其他
+  seed: 42
+  fp16: false  # 使用bf16而非fp16
+  bf16: true   # 启用bf16
+  dataloader_num_workers: 4
+  remove_unused_columns: false
+  
+  # Chat Template配置
+  apply_chat_template: true
+  custom_system_prompt: |
+    你是一位专业的企业年报分析专家，精通财务报表分析、经营情况解读、投资风险评估等领域。
+    
+    你的职责包括：
+    1. 深入分析企业的财务状况，包括资产负债表、利润表、现金流量表
+    2. 解读企业的经营成果和发展趋势
+    3. 评估投资风险和投资价值
+    4. 对比同行业公司的财务指标
+    5. 识别财务风险信号和异常
+    
+    回答要求：
+    - 基于提供的参考资料进行回答
+    - 数据准确，引用具体的财务数据
+    - 分析专业，使用财务术语
+    - 结构清晰，分点论述
+    - 如有不确定的信息，明确说明
+
+# LoRA配置
+lora:
+  # LoRA维度，>0启用LoRA/QLoRA，=0启用全量微调
+  r: 64
+  alpha: 16
+  dropout: 0.1
+  target_modules:
+    - "q_proj"
+    - "k_proj"
+    - "v_proj"
+    - "o_proj"
+    - "gate_proj"
+    - "up_proj"
+    - "down_proj"
+  bias: "none"
+  task_type: "CAUSAL_LM"
+
+# QLoRA配置（当load_in_4bit=true时生效）
+qlora:
+  # 4bit量化配置
+  bnb_4bit_compute_dtype: "bfloat16"
+  bnb_4bit_quant_type: "nf4"
+  bnb_4bit_use_double_quant: true
+
+# 数据配置
+data:
+  train_file: "./data/train/train.jsonl"
+  validation_file: "./data/train/validation.jsonl"
+  test_file: "./data/train/test.jsonl"
+  
+  # 数据格式配置
+  # SFT格式: {"instruction": "...", "output": "..."}
+  # DPO格式: {"prompt": "...", "chosen": "...", "rejected": "..."}
+  
+  # 是否使用自定义system prompt
+  use_custom_system_prompt: true
+
+# Embedding模型配置（RAG使用）
+embedding:
+  name: "Qwen/Qwen3-VL-Embedding-2B"
+  path: "./models/embedding"
+  device: "cuda"
+  batch_size: 32
+  max_length: 512
+  normalize_embeddings: true
+
+# RAG配置
+rag:
+  vector_store:
+    type: "chroma"
+    persist_directory: "./data/vector_db"
+    collection_name: "annual_reports"
+    distance_metric: "cosine"
+    
+  retrieval:
+    top_k: 5
+    similarity_threshold: 0.7
+    rerank_enabled: true
+    rerank_model: "BAAI/bge-reranker-base"
+    
+  chunking:
+    chunk_size: 512
+    chunk_overlap: 128
+
+# 日志配置
+logging:
+  level: "INFO"
+  format: "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+  file: "./logs/training.log"
+  tensorboard_dir: "./logs/tensorboard"

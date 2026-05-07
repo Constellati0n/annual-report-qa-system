@@ -1,0 +1,129 @@
+# 年报分析助手配置文件 - 示例
+# 复制此文件为 config.yaml 并修改路径
+
+server:
+  host: "0.0.0.0"
+  port: 8000
+  workers: 1
+
+gpu:
+  device: "cuda"
+  mixed_precision: true
+  compile_model: false
+
+models:
+  llm:
+    name: "Qwen3-8B"
+    path: "/path/to/Qwen3-8B"
+    base_model: "/path/to/Qwen3-8B"
+    load_in_4bit: false
+    max_length: 32768
+    max_model_len: 32768
+    temperature: 0.7
+    top_p: 0.9
+    enable_thinking: true
+    thinking_mode: "soft"
+    enable_tool_call: true
+    tool_call_parser: "qwen25"
+    rope_scaling:
+      enabled: false
+      rope_type: "yarn"
+      factor: 4.0
+      original_max_position_embeddings: 32768
+
+  embedding:
+    name: "Qwen3-Embedding-0.6B"
+    path: "/path/to/Qwen3-Embedding-0.6B"
+    device: "cuda"
+    batch_size: 32
+    max_length: 512
+    normalize_embeddings: true
+
+rag:
+  vector_store:
+    type: "chroma"
+    persist_directory: "./data/vector_db"
+    collection_name: "annual_reports"
+    distance_metric: "cosine"
+
+  retrieval:
+    top_k: 5
+    similarity_threshold: 0.7
+    rerank_enabled: true
+    rerank_model: "/path/to/Qwen3-Reranker-0.6B"
+
+  chunking:
+    chunk_size: 512
+    chunk_overlap: 128
+    separator: "\n"
+
+data:
+  raw_data_path: "./data/raw"
+  processed_data_path: "./data/processed"
+  train_data_path: "./data/train"
+  reports_path: "./data/reports"
+  supported_formats: [".pdf", ".txt", ".docx"]
+
+training:
+  output_dir: "./models/llm_finetuned"
+  num_epochs: 3
+  batch_size: 4
+  gradient_accumulation_steps: 4
+  learning_rate: 2.0e-4
+  warmup_ratio: 0.03
+  weight_decay: 0.01
+  max_grad_norm: 0.3
+  lora:
+    r: 64
+    alpha: 16
+    dropout: 0.1
+    target_modules:
+      - "q_proj"
+      - "k_proj"
+      - "v_proj"
+      - "o_proj"
+      - "gate_proj"
+      - "up_proj"
+      - "down_proj"
+  save_steps: 500
+  eval_steps: 500
+  logging_steps: 10
+  save_total_limit: 3
+  evaluation_strategy: "steps"
+  load_best_model_at_end: true
+  metric_for_best_model: "eval_loss"
+
+crawler:
+  sources:
+    - name: "sse"
+      base_url: "http://www.sse.com.cn"
+      enabled: true
+    - name: "szse"
+      base_url: "http://www.szse.cn"
+      enabled: true
+  download:
+    timeout: 30
+    retry_times: 3
+    concurrent_limit: 5
+    output_dir: "./data/raw"
+  update_interval: 7
+
+logging:
+  level: "INFO"
+  format: "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+  file: "./logs/app.log"
+  max_bytes: 10485760
+  backup_count: 5
+
+prompts:
+  system_prompt: |
+    你是一位专业的企业年报分析专家，精通财务报表分析、经营情况解读、投资风险评估等领域。
+  rag_template: |
+    以下是相关的参考资料：
+
+    {context}
+
+    ---
+
+    基于以上资料，请回答以下问题：
+    {question}

@@ -1,0 +1,6 @@
+flowchart TB
+    A[前端服务器] --> B[静态文件服务]
+    A --> C[API代理]
+    C --> D[后端API]
+    B --> E[HTML/CSS/JS]
+    C --> F[请求转发]

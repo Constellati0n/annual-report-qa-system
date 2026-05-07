@@ -1,0 +1,211 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+*.egg-info/
+dist/
+build/
+*.egg
+
+# Virtual Environment
+.venv/
+venv/
+env/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Large data files
+*.zip
+*.tar.gz
+*.rar
+*.7z
+*.npy
+*.gz
+
+# Data directories (too large for GitHub)
+data/processed/
+data/train/
+data/train_100_companies/
+data/train_all/
+data/train_final/
+data/train_hs300/
+data/training/
+data/vector_db_demo/
+data/vector_demo/
+data/AAPL_financials.json
+data/crawler_progress.json
+data/mass_crawler_progress.json
+data/quality_report.json
+data/processed_for_upload/
+
+# Extracted reports (large text files)
+extracted_reports/
+
+# Knowledge base (large JSON)
+knowledge_base/
+
+# Upload packages (build artifacts)
+upload_package/
+
+# Temp build directories
+temp_build/
+
+# Logs
+*.log
+crawler.log
+mass_crawler.log
+batch_extract.log
+process_all_reports.log
+extraction_log.txt
+
+# Personal / thesis files (contain personal info)
+paper/last/
+paper/temp_docx_extract/
+paper/~$*
+paper/*毕业论文*
+paper/*答辩*
+paper/*查重*
+paper/*AIGC*
+
+# PPT files (large, personal)
+*.pptx
+
+# Word temp files
+~$*
+
+# Shortcut files
+*.lnk
+
+# Diagnostic / debug files
+diagnostic_report.txt
+
+# Shell scripts for server (deployment-specific)
+apply_fixes.sh
+check_and_init.sh
+claude_code_env.sh
+diagnose_server.sh
+fix_frontend.sh
+install_env.sh
+monitor_services.sh
+pack_project.sh
+start_all_services.sh
+start_frontend_simple.sh
+start_services_safe.sh
+stop_all_services.sh
+sync_to_server.sh
+test_base_local.sh
+test_quality.sh
+verify_sse.sh
+
+# One-off scripts / debug scripts (not core project)
+analyze_v6.py
+check_adapter.py
+check_ppt.py
+check_server_deps.py
+cleanup_scripts.py
+convert_md_to_docx.py
+create_project_zip.py
+debug_decode.py
+debug_prompt_length.py
+fix_imports_server.py
+fix_layout_v8.py
+fix_ppt_zip.py
+fix_server_imports.py
+fix_v6_all_pics.py
+fix_v6_correct.py
+fix_v6_ppt.py
+generate_ppt.py
+merge_all_datasets.py
+merge_datasets.py
+pack_project.py
+package_for_upload.py
+rebuild_ppt.py
+rebuild_v10.py
+rebuild_v10_v2.py
+rebuild_zip.py
+rebuild_zip_v2.py
+redownload_model.py
+split_screenshots.py
+split_screenshots_v2.py
+split_to_4_slides.py
+upload_cloud.py
+upload_oss.py
+upload_to_cloud.py
+verify_model.py
+verify_v10.py
+test_base_model.py
+test_combination.py
+test_decode_issue.py
+test_exact_match.py
+test_llm_client_final.py
+test_llm_client_fixed.py
+test_max_tokens.py
+test_minimal_api.py
+test_model_output.py
+test_no_repeat_ngram.py
+test_prompt_format.py
+test_system_prompt.py
+test_tokenizer_issue.py
+batch_extract_reports.py
+check_and_init.sh
+extract_100_companies.py
+extract_hs300_companies.py
+extract_report_content.py
+fix_frontend.sh
+process_all_reports.py
+run_crawler.py
+report_content_*.txt
+manual_training_dataset.jsonl
+training-data-*.zip
+training_data.zip
+data.tar.gz
+project.zip
+annual_report_assistant.tar.gz
+annual_report_project.zip
+annual_report_assistant_project.zip
+knowledge_base.zip
+processed_documents.zip
+
+# Paper tools (build scripts, not core)
+paper/tools/
+
+# Paper assets (generated images, can be regenerated)
+paper/assets/*.png
+paper/assets/*.log
+paper/assets/generate_*.py
+
+# Deploy guides (deployment-specific)
+CLOUD_DEPLOY_GUIDE.md
+MODEL_DEPLOYMENT_GUIDE.md
+PAI_SETUP_GUIDE.md
+SERVER_FILES.md
+IMPROVEMENTS.md
+PROJECT_SUMMARY.md
+QUICK_START.md
+*服务器迁移*
+
+# PAI setup (deployment-specific)
+pai_setup/
+
+# Deploy directory
+deploy/
+
+# Config (contains server-specific paths, use config.example.yaml)
+config/config.yaml
+
+# Client chat examples (not core)
+client/llm_chat.py
+client/llm_chat_fixed.py
+client/llm_chat_v2.py
+client/chat_example.py

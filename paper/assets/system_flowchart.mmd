@@ -1,0 +1,20 @@
+flowchart TB
+    subgraph 前端界面层
+        A1[Web界面]
+        A2[历史对话]
+    end
+    subgraph API服务层
+        B1[FastAPI路由]
+        B2[年报分析助手]
+    end
+    subgraph 数据处理层
+        C1[RAG检索器]
+        C2[ChromaDB]
+        C3[Qwen3-8B]
+    end
+    A1 --> B1
+    A2 --> B1
+    B1 --> B2
+    B2 --> C1
+    C1 --> C2
+    C1 --> C3
