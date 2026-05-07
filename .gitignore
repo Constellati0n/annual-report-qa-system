@@ -177,13 +177,8 @@ annual_report_assistant_project.zip
 knowledge_base.zip
 processed_documents.zip
 
-# Paper tools (build scripts, not core)
-paper/tools/
-
-# Paper assets (generated images, can be regenerated)
-paper/assets/*.png
-paper/assets/*.log
-paper/assets/generate_*.py
+# Paper assets (generated images/diagrams)
+paper/assets/
 
 # Deploy guides (deployment-specific)
 CLOUD_DEPLOY_GUIDE.md
