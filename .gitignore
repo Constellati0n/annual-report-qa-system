@@ -187,6 +187,9 @@ processed_documents.zip
 # Paper assets (generated images/diagrams)
 paper/assets/
 
+# Deploy logs (contain server paths, instance IDs)
+DEPLOY_PROGRESS.md
+
 # Deploy guides (deployment-specific)
 CLOUD_DEPLOY_GUIDE.md
 MODEL_DEPLOYMENT_GUIDE.md
