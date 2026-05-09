@@ -43,6 +43,13 @@ data/train_hs300/
 data/training/
 data/vector_db_demo/
 data/vector_demo/
+data/vector_db/
+
+# Model files (too large for GitHub without LFS)
+models/llm_finetuned/adapter_model.safetensors
+models/llm_finetuned/checkpoint-*/
+models/llm_finetuned/tokenizer.json
+models/llm_finetuned/training_args.bin
 data/AAPL_financials.json
 data/crawler_progress.json
 data/mass_crawler_progress.json

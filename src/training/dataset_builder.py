@@ -4,6 +4,7 @@
 """
 import json
 import random
+from collections import defaultdict
 from typing import List, Dict, Optional, Any
 from pathlib import Path
 import logging
@@ -91,6 +92,10 @@ class AnnualReportQAGenerator:
     def __init__(self):
         self.examples: List[TrainingExample] = []
     
+    def _safe_format(self, template: str, data: Dict) -> str:
+        from collections import defaultdict
+        return template.format_map(defaultdict(str, data))
+
     def generate_financial_analysis_qa(self, company_data: Dict) -> List[TrainingExample]:
         """
         生成财务分析问答对
@@ -154,7 +159,7 @@ class AnnualReportQAGenerator:
             # 简化示例，实际应用中需要更复杂的逻辑
             example = TrainingExample(
                 instruction=template["instruction"].format(company_name=company_data.get("name", "某公司")),
-                input=template["input"].format(**company_data),
+                input=template["input"].format_map(defaultdict(str, company_data)),
                 output="请根据实际数据生成分析结果",
                 system="你是一位专业的财务分析师，擅长财务指标计算和分析。",
                 metadata={"task_type": "financial_analysis", "company": company_data.get("name")}
@@ -212,7 +217,7 @@ class AnnualReportQAGenerator:
         for template in templates:
             example = TrainingExample(
                 instruction=template["instruction"].format(company_name=company_data.get("name", "某公司")),
-                input=template["input"].format(**company_data),
+                input=template["input"].format_map(defaultdict(str, company_data)),
                 output="请根据实际数据生成分析结果",
                 system="你是一位资深的行业分析师，擅长企业经营分析。",
                 metadata={"task_type": "business_review", "company": company_data.get("name")}
@@ -262,7 +267,7 @@ class AnnualReportQAGenerator:
         for template in templates:
             example = TrainingExample(
                 instruction=template["instruction"].format(company_name=company_data.get("name", "某公司")),
-                input=template["input"].format(**company_data),
+                input=template["input"].format_map(defaultdict(str, company_data)),
                 output="请根据实际数据生成风险评估",
                 system="你是一位专业的投资分析师，擅长风险评估和投资建议。",
                 metadata={"task_type": "risk_assessment", "company": company_data.get("name")}
@@ -321,7 +326,7 @@ class AnnualReportQAGenerator:
             {
                 "instruction": "请从以下年报内容中提取关键信息摘要。",
                 "input": report_content[:2000],  # 限制长度
-                "output_template": ""**年报关键信息摘要**
+                "output_template": """**年报关键信息摘要**
 
 **一、公司概况**
 {company_overview}
@@ -341,7 +346,7 @@ class AnnualReportQAGenerator:
             {
                 "instruction": "请提取以下文本中的财务数据。",
                 "input": report_content[:1500],
-                "output_template": ""**提取的财务数据**
+                "output_template": """**提取的财务数据**
 
 营业收入：{revenue}
 净利润：{net_profit}
@@ -380,15 +385,31 @@ ROE：{roe}"""
         
         # 模拟公司数据
         mock_companies = [
-            {"name": "贵州茅台", "stock_code": "600519", "industry": "白酒"},
-            {"name": "中国平安", "stock_code": "601318", "industry": "保险"},
-            {"name": "招商银行", "stock_code": "600036", "industry": "银行"},
-            {"name": "宁德时代", "stock_code": "300750", "industry": "新能源"},
-            {"name": "比亚迪", "stock_code": "002594", "industry": "汽车"},
+            {"name": "贵州茅台", "stock_code": "600519", "industry": "白酒", "company_name": "贵州茅台", "company_info": "贵州茅台酒股份有限公司是中国白酒行业龙头企业", "financial_status": "财务状况良好，资产负债率低，现金流充裕",
+             "revenue": "1275", "net_profit": "653", "total_assets": "3200", "net_assets": "2600", "gross_margin": "92", "net_margin": "51", "gross_margin_analysis": "毛利率极高，产品定价能力强", "net_margin_analysis": "净利率行业领先，成本控制优秀",
+             "gross_margin_comparison": "远高于行业平均", "net_margin_comparison": "行业最高水平",
+             "report_summary": "贵州茅台2023年实现营收1275亿元", "revenue_growth": "18", "profit_growth": "19", "eps": "52.0", "business_development": "茅台酒销量增长，系列酒放量", "key_highlights": "i茅台平台GMV突破200亿", "challenges": "宏观经济下行压力",
+             "company_intro": "贵州茅台是中国白酒第一品牌", "business_segments": "茅台酒、系列酒、其他", "technical_advantages": "酿造工艺国家级非遗", "market_position": "白酒行业绝对龙头", "brand_strength": "品牌价值全球第一", "channel_advantages": "全国经销商网络覆盖", "management_team": "管理层经验丰富"},
+            {"name": "中国平安", "stock_code": "601318", "industry": "保险", "company_name": "中国平安", "company_info": "中国平安保险集团股份有限公司，综合金融集团", "financial_status": "资产规模庞大，盈利稳健",
+             "revenue": "8800", "net_profit": "856", "total_assets": "115000", "net_assets": "8900", "gross_margin": "28", "net_margin": "9.7", "gross_margin_analysis": "金融业务综合毛利率稳定", "net_margin_analysis": "投资收益驱动净利增长", "gross_margin_comparison": "略高于行业平均", "net_margin_comparison": "行业领先",
+             "report_summary": "中国平安2023年营收8800亿元", "revenue_growth": "10", "profit_growth": "12", "eps": "8.5", "business_development": "寿险改革推进，科技赋能金融", "key_highlights": "客户数突破2.5亿", "challenges": "利率下行影响利差",
+             "company_intro": "中国平安是全球领先的综合金融服务集团", "business_segments": "保险、银行、资管、科技", "technical_advantages": "金融科技领先", "market_position": "综合金融集团龙头", "brand_strength": "全球最具价值保险品牌", "channel_advantages": "综合金融渠道协同", "management_team": "管理层经验丰富"},
+            {"name": "招商银行", "stock_code": "600036", "industry": "银行", "company_name": "招商银行", "company_info": "招商银行股份有限公司，中国领先商业银行", "financial_status": "资产质量优良，不良贷款率低",
+             "revenue": "3600", "net_profit": "1466", "total_assets": "110000", "net_assets": "9800", "gross_margin": "45", "net_margin": "40", "gross_margin_analysis": "净息差稳定，中间业务收入增长", "net_margin_analysis": "零售银行优势明显", "gross_margin_comparison": "行业领先", "net_margin_comparison": "优秀",
+             "report_summary": "招商银行2023年净利润1466亿元", "revenue_growth": "8", "profit_growth": "15", "eps": "5.8", "business_development": "零售金融持续领跑", "key_highlights": "金葵花管理资产突破12万亿", "challenges": "零售贷款不良率略升",
+             "company_intro": "招商银行是最具创新力的零售银行", "business_segments": "零售金融、批发金融", "technical_advantages": "金融科技投入行业第一", "market_position": "零售银行龙头", "brand_strength": "零售银行首选品牌", "channel_advantages": "线上线下渠道融合", "management_team": "管理层经验丰富"},
+            {"name": "宁德时代", "stock_code": "300750", "industry": "新能源", "company_name": "宁德时代", "company_info": "宁德时代新能源科技股份有限公司，动力电池龙头", "financial_status": "营收高速增长，市占率全球第一",
+             "revenue": "4000", "net_profit": "441", "total_assets": "7200", "net_assets": "2200", "gross_margin": "23", "net_margin": "11", "gross_margin_analysis": "受原材料成本影响毛利率波动", "net_margin_analysis": "规模效应逐步显现", "gross_margin_comparison": "略低于海外同行", "net_margin_comparison": "行业中等偏上",
+             "report_summary": "宁德时代2023年动力电池出货量全球第一", "revenue_growth": "35", "profit_growth": "43", "eps": "11.0", "business_development": "麒麟电池量产，钠离子电池商用", "key_highlights": "全球市占率37%", "challenges": "原材料价格波动",
+             "company_intro": "宁德时代是全球最大的动力电池制造商", "business_segments": "动力电池、储能电池、电池回收", "technical_advantages": "研发费用行业第一，电池技术领先", "market_position": "动力电池全球第一", "brand_strength": "新能源动力电池首选品牌", "channel_advantages": "与全球主流车企战略合作", "management_team": "管理层经验丰富"},
+            {"name": "比亚迪", "stock_code": "002594", "industry": "汽车", "company_name": "比亚迪", "company_info": "比亚迪股份有限公司，新能源汽车引领者", "financial_status": "销量爆发式增长，规模效应显著",
+             "revenue": "6000", "net_profit": "300", "total_assets": "6800", "net_assets": "1600", "gross_margin": "20", "net_margin": "5", "gross_margin_analysis": "受价格战影响毛利率承压", "net_margin_analysis": "研发投入大但营收增长快", "gross_margin_comparison": "行业中等", "net_margin_comparison": "改善空间大",
+             "report_summary": "比亚迪2023年新能源汽车销量全球第一", "revenue_growth": "60", "profit_growth": "300", "eps": "10.3", "business_development": "海外市场快速拓展", "key_highlights": "年销量突破300万辆", "challenges": "行业价格战加剧",
+             "company_intro": "比亚迪是全球新能源汽车领导者", "business_segments": "汽车、电池、电子", "technical_advantages": "垂直整合能力行业领先", "market_position": "新能源汽车全球第一", "brand_strength": "新能源标杆品牌", "channel_advantages": "全球销售网络布局", "management_team": "管理层经验丰富"},
         ]
         
         for i in range(num_samples):
-            company = random.choice(mock_companies)
+            company = defaultdict(str, random.choice(mock_companies))
             task_type = random.choice(list(self.TASK_TYPES.keys()))
             
             if task_type == "financial_analysis":
