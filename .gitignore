@@ -40,6 +40,7 @@ data/train_100_companies/
 data/train_all/
 data/train_final/
 data/train_hs300/
+data/train_v2/
 data/training/
 data/vector_db_demo/
 data/vector_demo/
@@ -163,15 +164,18 @@ test_model_output.py
 test_no_repeat_ngram.py
 test_prompt_format.py
 test_system_prompt.py
+test_model.py
 test_tokenizer_issue.py
 batch_extract_reports.py
 check_and_init.sh
+check_quality.py
 extract_100_companies.py
 extract_hs300_companies.py
 extract_report_content.py
 fix_frontend.sh
 process_all_reports.py
 run_crawler.py
+shard_data.py
 report_content_*.txt
 manual_training_dataset.jsonl
 training-data-*.zip
@@ -184,8 +188,9 @@ annual_report_assistant_project.zip
 knowledge_base.zip
 processed_documents.zip
 
-# Paper assets (generated images/diagrams)
-paper/assets/
+# Paper related files (personal / thesis generation tools)
+paper/
+
 
 # Deploy logs (contain server paths, instance IDs)
 DEPLOY_PROGRESS.md
