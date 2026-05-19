@@ -533,15 +533,32 @@ async def chat(request: AnalyzeRequest):
             
             # SSE 生成器函数
             async def sse_generator():
+                loop = asyncio.get_running_loop()
+                queue = asyncio.Queue()
+
+                def _produce():
+                    try:
+                        for chunk in generator:
+                            queue.put_nowait(chunk)
+                        queue.put_nowait(None)  # 结束信号
+                    except Exception as e:
+                        queue.put_nowait(("error", str(e)))
+
+                loop.run_in_executor(None, _produce)
+
                 try:
-                    # 如果 generator 不是异步生成器，直接同步迭代
-                    for chunk in generator:
-                        # 包装成 SSE 格式
+                    while True:
+                        chunk = await queue.get()
+                        if chunk is None:
+                            yield "data: [DONE]\n\n"
+                            break
+                        if isinstance(chunk, tuple) and chunk[0] == "error":
+                            logger.error("流式输出异常: %s", chunk[1])
+                            yield f"data: {json.dumps({'error': chunk[1]})}\n\n"
+                            break
                         yield f"data: {json.dumps({'content': chunk})}\n\n"
-                    # 发送结束标记
-                    yield "data: [DONE]\n\n"
                 except Exception as e:
-                    logger.error(f"流式输出异常: {e}")
+                    logger.error("流式输出异常: %s", e)
                     yield f"data: {json.dumps({'error': str(e)})}\n\n"
 
             return StreamingResponse(sse_generator(), media_type="text/event-stream")

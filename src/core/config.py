@@ -4,10 +4,13 @@
 """
 import os
 import yaml
+import logging
 from typing import Optional, Dict, Any, List
 from dataclasses import dataclass, field
 from pathlib import Path
 from functools import lru_cache
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass
@@ -126,47 +129,6 @@ class CacheConfig:
 
 
 @dataclass
-class ModelsConfig:
-    """模型配置（新格式兼容）"""
-    llm: Dict[str, Any] = field(default_factory=dict)
-    embedding: Dict[str, Any] = field(default_factory=dict)
-
-
-@dataclass
-class VectorStoreConfig:
-    """向量存储配置"""
-    type: str = "chroma"
-    persist_directory: str = "./data/vector_db"
-    collection_name: str = "annual_reports"
-    distance_metric: str = "cosine"
-
-
-@dataclass
-class RetrievalConfig:
-    """检索配置"""
-    top_k: int = 5
-    similarity_threshold: float = 0.7
-    rerank_enabled: bool = True
-    rerank_model: str = "BAAI/bge-reranker-base"
-
-
-@dataclass
-class ChunkingConfig:
-    """分块配置"""
-    chunk_size: int = 512
-    chunk_overlap: int = 128
-    separator: str = "\n"
-
-
-@dataclass
-class RAGConfigNew:
-    """RAG配置（新格式）"""
-    vector_store: VectorStoreConfig = field(default_factory=VectorStoreConfig)
-    retrieval: RetrievalConfig = field(default_factory=RetrievalConfig)
-    chunking: ChunkingConfig = field(default_factory=ChunkingConfig)
-
-
-@dataclass
 class AppConfig:
     """应用主配置"""
     env: str = "development"  # development, testing, production
@@ -180,11 +142,7 @@ class AppConfig:
     monitoring: MonitoringConfig = field(default_factory=MonitoringConfig)
     cache: CacheConfig = field(default_factory=CacheConfig)
     
-    # 新格式配置
-    models: ModelsConfig = field(default_factory=ModelsConfig)
-    rag_new: RAGConfigNew = field(default_factory=RAGConfigNew)
-    
-    # 自定义配置
+    # 自定义扩展配置
     custom: Dict[str, Any] = field(default_factory=dict)
 
 
@@ -230,10 +188,10 @@ class ConfigManager:
                         data = yaml.safe_load(f)
                         if data:
                             config = self._merge_config(config, data)
-                            print(f"✓ 加载配置文件: {path}")
+                            logger.info("已加载配置文件: %s", path)
                             break
                 except Exception as e:
-                    print(f"⚠ 配置文件加载失败 {path}: {e}")
+                    logger.warning("配置文件加载失败 %s: %s", path, e)
         
         return config
     
@@ -273,116 +231,72 @@ class ConfigManager:
     
     def _merge_config(self, config: AppConfig, data: Dict) -> AppConfig:
         """合并配置数据（支持新旧两种配置格式）"""
-        # 处理新的配置格式 (models, server, gpu 等)
+        # 新格式: models.llm → model
         if "models" in data:
             models = data["models"]
             if "llm" in models:
-                llm = models["llm"]
-                if "name" in llm:
-                    config.model.llm_model_name = llm["name"]
-                if "path" in llm:
-                    config.model.llm_model_path = llm["path"]
-                if "base_model" in llm:
-                    config.model.llm_model_name = llm["base_model"]
-                if "load_in_4bit" in llm:
-                    config.model.load_in_4bit = llm["load_in_4bit"]
-                if "max_length" in llm:
-                    config.model.max_new_tokens = llm["max_length"]
-                if "temperature" in llm:
-                    config.model.temperature = llm["temperature"]
-                if "top_p" in llm:
-                    config.model.top_p = llm["top_p"]
+                self._map_keys(models["llm"], config.model, {
+                    "name": "llm_model_name",
+                    "path": "llm_model_path",
+                    "max_length": "max_new_tokens",
+                })
             if "embedding" in models:
-                emb = models["embedding"]
-                if "name" in emb:
-                    config.model.embedding_model_name = emb["name"]
-                if "path" in emb:
-                    config.model.embedding_model_path = emb["path"]
-                if "device" in emb:
-                    config.model.device = emb["device"]
-        
-        # 处理 server 配置
+                self._map_keys(models["embedding"], config.model, {
+                    "name": "embedding_model_name",
+                    "path": "embedding_model_path",
+                })
+            # base_model 只有在 name 未设置时才生效
+            llm = models.get("llm", {})
+            if "base_model" in llm and "name" not in llm:
+                config.model.llm_model_name = llm["base_model"]
+
+        # 新格式: server → api, gpu → model.device
         if "server" in data:
-            server = data["server"]
-            if "host" in server:
-                config.api.host = server["host"]
-            if "port" in server:
-                config.api.port = server["port"]
-            if "workers" in server:
-                config.api.workers = server["workers"]
-        
-        # 处理 gpu 配置
+            self._map_keys(data["server"], config.api,
+                           {"host": "host", "port": "port", "workers": "workers"})
         if "gpu" in data:
-            gpu = data["gpu"]
-            if "device" in gpu:
-                config.model.device = gpu["device"]
-        
-        # 处理旧的配置格式
-        if "model" in data:
-            for key, value in data["model"].items():
-                if hasattr(config.model, key):
-                    setattr(config.model, key, value)
-        
-        # 处理 RAG 配置（新旧格式）
+            if "device" in data["gpu"]:
+                config.model.device = data["gpu"]["device"]
+
+        # 通用合并：model, api, crawler, logging, monitoring, cache
+        for section, target in [
+            ("model", config.model),
+            ("api", config.api),
+            ("crawler", config.crawler),
+            ("logging", config.logging),
+            ("monitoring", config.monitoring),
+            ("cache", config.cache),
+        ]:
+            if section in data:
+                for key, value in data[section].items():
+                    if hasattr(target, key):
+                        setattr(target, key, value)
+
+        # RAG 配置：支持旧格式和新嵌套格式
         if "rag" in data:
             rag = data["rag"]
-            if "vector_store" in rag:
-                vs = rag["vector_store"]
-                if "type" in vs:
-                    config.rag.vector_store_type = vs["type"]
-                if "persist_directory" in vs:
-                    config.rag.vector_db_path = vs["persist_directory"]
-                if "collection_name" in vs:
-                    config.rag.collection_name = vs["collection_name"]
-                if "distance_metric" in vs:
-                    config.rag.distance_metric = vs["distance_metric"]
-            if "retrieval" in rag:
-                ret = rag["retrieval"]
-                if "top_k" in ret:
-                    config.rag.top_k = ret["top_k"]
-                if "similarity_threshold" in ret:
-                    config.rag.similarity_threshold = ret["similarity_threshold"]
-                if "rerank_enabled" in ret:
-                    config.rag.use_reranker = ret["rerank_enabled"]
-                if "rerank_model" in ret:
-                    config.rag.reranker_model = ret["rerank_model"]
-            if "chunking" in rag:
-                chunk = rag["chunking"]
-                if "chunk_size" in chunk:
-                    config.rag.chunk_size = chunk["chunk_size"]
-                if "chunk_overlap" in chunk:
-                    config.rag.chunk_overlap = chunk["chunk_overlap"]
-            # 旧格式
+            # 新嵌套格式: rag.vector_store → config.rag
+            for sub_section, key_map in [
+                ("vector_store", {"type": "vector_store_type", "persist_directory": "vector_db_path",
+                                  "collection_name": "collection_name", "distance_metric": "distance_metric"}),
+                ("retrieval", {"top_k": "top_k", "similarity_threshold": "similarity_threshold",
+                               "rerank_enabled": "use_reranker", "rerank_model": "reranker_model"}),
+                ("chunking", {"chunk_size": "chunk_size", "chunk_overlap": "chunk_overlap"}),
+            ]:
+                if sub_section in rag:
+                    self._map_keys(rag[sub_section], config.rag, key_map)
+            # 旧格式: 直接映射
             for key, value in rag.items():
                 if hasattr(config.rag, key):
                     setattr(config.rag, key, value)
-        
-        if "api" in data:
-            for key, value in data["api"].items():
-                if hasattr(config.api, key):
-                    setattr(config.api, key, value)
-        
-        if "crawler" in data:
-            for key, value in data["crawler"].items():
-                if hasattr(config.crawler, key):
-                    setattr(config.crawler, key, value)
-        
-        if "logging" in data:
-            for key, value in data["logging"].items():
-                if hasattr(config.logging, key):
-                    setattr(config.logging, key, value)
-        
-        if "monitoring" in data:
-            for key, value in data["monitoring"].items():
-                if hasattr(config.monitoring, key):
-                    setattr(config.monitoring, key, value)
-        
-        if "cache" in data:
-            for key, value in data["cache"].items():
-                if hasattr(config.cache, key):
-                    setattr(config.cache, key, value)
-        
+
         return config
+
+    @staticmethod
+    def _map_keys(source: dict, target: Any, key_map: Dict[str, str]):
+        for src_key, dst_key in key_map.items():
+            if src_key in source:
+                setattr(target, dst_key, source[src_key])
     
     @property
     def config(self) -> AppConfig:
@@ -392,7 +306,7 @@ class ConfigManager:
     def reload(self):
         """重新加载配置"""
         self._config = self._load_config()
-        print("✓ 配置已重新加载")
+        logger.info("配置已重新加载")
 
 
 # 全局配置访问函数
@@ -426,9 +340,9 @@ def get_logging_config() -> LoggingConfig:
 
 
 if __name__ == "__main__":
-    # 测试配置加载
+    logging.basicConfig(level=logging.INFO)
     config = get_config()
-    print(f"\n环境: {config.env}")
-    print(f"LLM模型: {config.model.llm_model_name}")
-    print(f"向量存储: {config.rag.vector_store_type}")
-    print(f"API端口: {config.api.port}")
+    logger.info("环境: %s", config.env)
+    logger.info("LLM模型: %s", config.model.llm_model_name)
+    logger.info("向量存储: %s", config.rag.vector_store_type)
+    logger.info("API端口: %s", config.api.port)

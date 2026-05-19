@@ -24,7 +24,6 @@ try:
 except ImportError:
     from client.llm_chat import LLMChatClient
 
-logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 

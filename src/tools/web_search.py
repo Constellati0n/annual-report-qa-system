@@ -7,6 +7,7 @@ import os
 import json
 import urllib.request
 import urllib.parse
+from datetime import datetime
 from typing import Optional, List, Dict, Any
 from langchain.tools import tool
 from pydantic import BaseModel, Field
@@ -121,7 +122,8 @@ class CompanyInfoSearchTool:
 
     def search_company_news(self, company_name: str, num_results: int = 5) -> str:
         """搜索公司最新新闻"""
-        query = f"{company_name} 最新新闻 2024 2025"
+        current_year = datetime.now().year
+        query = f"{company_name} 最新新闻 {current_year}"
         return self.web_search.search(query, num_results)
 
     def search_company_finance(self, company_name: str, num_results: int = 5) -> str:
@@ -131,7 +133,8 @@ class CompanyInfoSearchTool:
 
     def search_industry_info(self, industry: str, num_results: int = 5) -> str:
         """搜索行业信息"""
-        query = f"{industry} 行业分析 发展趋势 2024 2025"
+        current_year = datetime.now().year
+        query = f"{industry} 行业分析 发展趋势 {current_year}"
         return self.web_search.search(query, num_results)
 
     def search_stock_price(self, stock_code: str, num_results: int = 3) -> str:

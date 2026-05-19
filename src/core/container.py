@@ -5,8 +5,18 @@
 from typing import Optional, Type, TypeVar, Dict, Any, Callable
 from functools import wraps
 import threading
+import logging
 
 T = TypeVar('T')
+logger = logging.getLogger(__name__)
+
+try:
+    from ..rag.interfaces import IEmbedding, IVectorStore, IRetriever, IReranker
+except ImportError:
+    IEmbedding = None
+    IVectorStore = None
+    IRetriever = None
+    IReranker = None
 
 
 class Container:
@@ -122,25 +132,21 @@ def inject(**dependencies):
 
 # 初始化函数
 def initialize_container():
-    """初始化容器，注册所有组件"""
-    from ..rag.interfaces import IVectorStore, IEmbedding, IRetriever, IReranker
-    from ..rag.embedding import EmbeddingManager
-    from ..rag.vector_store import ChromaVectorStore, FAISSVectorStore
-    from ..rag.retriever import RAGRetriever
-    from ..rag.reranker import BGEReranker
-    from .config import get_rag_config
-    
+    """初始化容器，注册所有组件（使用延迟导入避免循环依赖）"""
     container = get_container()
-    config = get_rag_config()
     
     # 注册Embedding
-    container.register_singleton(
-        IEmbedding,
-        lambda: EmbeddingManager()
-    )
+    def _create_embedding():
+        from ..rag.embedding import EmbeddingManager
+        return EmbeddingManager()
+
+    container.register_singleton(IEmbedding, _create_embedding)
     
     # 注册VectorStore
-    def create_vector_store():
+    def _create_vector_store():
+        from .config import get_rag_config
+        from ..rag.vector_store import ChromaVectorStore, FAISSVectorStore
+        config = get_rag_config()
         if config.vector_store_type == "chroma":
             return ChromaVectorStore(
                 collection_name=config.collection_name,
@@ -151,26 +157,30 @@ def initialize_container():
                 collection_name=config.collection_name,
                 persist_directory=config.vector_db_path
             )
-    
-    container.register_singleton(IVectorStore, create_vector_store)
+
+    container.register_singleton(IVectorStore, _create_vector_store)
     
     # 注册Reranker
-    container.register_singleton(
-        IReranker,
-        lambda: BGEReranker() if config.use_reranker else None
-    )
+    def _create_reranker():
+        from ..rag.reranker import BGEReranker
+        from .config import get_rag_config
+        config = get_rag_config()
+        return BGEReranker() if config.use_reranker else None
+
+    container.register_singleton(IReranker, _create_reranker)
     
     # 注册Retriever
-    container.register_singleton(
-        IRetriever,
-        lambda: RAGRetriever(
+    def _create_retriever():
+        from ..rag.retriever import RAGRetriever
+        return RAGRetriever(
             vector_store=container.resolve(IVectorStore),
             embedding=container.resolve(IEmbedding),
             reranker=container.resolve(IReranker)
         )
-    )
+
+    container.register_singleton(IRetriever, _create_retriever)
     
-    print("✓ 依赖注入容器初始化完成")
+    logger.info("依赖注入容器初始化完成")
 
 
 # 便捷获取函数
