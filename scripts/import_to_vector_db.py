@@ -6,9 +6,10 @@ import sys
 import os
 import json
 import argparse
+from pathlib import Path
 
 # 添加项目路径
-sys.path.insert(0, '/mnt/workspace/annual_report_assistant')
+sys.path.insert(0, str(Path(__file__).parent.parent))
 
 def import_documents(json_path: str):
     """导入文档到向量数据库"""
@@ -34,7 +35,7 @@ def import_documents(json_path: str):
         
         # 初始化嵌入模型
         print("\n初始化嵌入模型...")
-        model_path = "/mnt/workspace/models/embedding/BAAI/bge-large-zh-v1.5"
+        model_path = os.getenv("EMBEDDING_MODEL_PATH", "BAAI/bge-large-zh-v1.5")
         model = SentenceTransformer(model_path, device="cuda" if torch.cuda.is_available() else "cpu")
         print(f"  模型加载完成，维度: {model.get_sentence_embedding_dimension()}")
         

@@ -15,7 +15,8 @@ import uvicorn
 
 # 设置模型路径 - 使用 BGE 模型，兼容性好
 MODEL_NAME = "BAAI/bge-large-zh-v1.5"
-MODEL_PATH = "/mnt/workspace/models/embedding/bge-large-zh-v1.5"
+MODEL_PATH = os.getenv("EMBEDDING_MODEL_PATH", "./models/embedding/bge-large-zh-v1.5")
+CACHE_DIR = os.getenv("MODEL_CACHE_DIR", "./models")
 
 # 创建FastAPI应用
 app = FastAPI(
@@ -38,7 +39,7 @@ def download_model():
         # 尝试使用ModelScope
         from modelscope import snapshot_download
         MODEL_PATH = snapshot_download("BAAI/bge-large-zh-v1.5", 
-                                       cache_dir="/mnt/workspace/models/embedding")
+                                       cache_dir=CACHE_DIR)
         print(f"✅ ModelScope下载完成: {MODEL_PATH}")
     except Exception as e:
         print(f"⚠️ ModelScope失败: {e}")

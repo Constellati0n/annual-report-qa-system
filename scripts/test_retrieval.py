@@ -3,7 +3,9 @@
 测试 RAG 检索功能
 """
 import sys
-sys.path.insert(0, '/mnt/workspace/annual_report_assistant')
+import os
+from pathlib import Path
+sys.path.insert(0, str(Path(__file__).parent.parent))
 
 import torch
 from sentence_transformers import SentenceTransformer
@@ -13,7 +15,7 @@ def test_retrieval():
     print("测试 RAG 检索...")
     
     # 初始化模型
-    model_path = "/mnt/workspace/models/embedding/BAAI/bge-large-zh-v1.5"
+    model_path = os.getenv("EMBEDDING_MODEL_PATH", "BAAI/bge-large-zh-v1.5")
     model = SentenceTransformer(model_path, device="cuda" if torch.cuda.is_available() else "cpu")
     
     # 连接向量数据库

@@ -32,7 +32,7 @@ class Qwen3ChatClient:
     def __init__(
         self,
         model_path: str = None,
-        base_model: str = "/mnt/workspace/models/llm/qwen/Qwen3-8B",
+        base_model: Optional[str] = None,
         device: str = None,
         load_in_4bit: bool = False,
         max_length: int = 32768,
@@ -456,7 +456,7 @@ def main():
     parser = argparse.ArgumentParser(description="Qwen3 对话客户端")
     parser.add_argument("--model-path", type=str, default=None,
                        help="微调模型路径")
-    parser.add_argument("--base-model", type=str, default="/mnt/workspace/models/llm/qwen/Qwen3-8B",
+    parser.add_argument("--base-model", type=str, default=None,
                        help="基础模型路径")
     parser.add_argument("--max-length", type=int, default=32768,
                        help="最大上下文长度 (Qwen3 支持 32K)")

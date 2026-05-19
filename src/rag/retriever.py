@@ -322,8 +322,11 @@ class RAGRetriever:
         }
 
 
-# 全局检索器实例
+import threading
+
 _retriever = None
+_retriever_lock = threading.Lock()
+
 
 def get_retriever(
     vector_store: Optional[VectorStoreManager] = None,
@@ -331,21 +334,23 @@ def get_retriever(
     **kwargs
 ) -> RAGRetriever:
     """
-    获取全局检索器实例
-    
+    获取全局检索器实例（线程安全）
+
     Args:
         vector_store: 向量存储管理器
         embedding_manager: Embedding管理器
         **kwargs: 其他参数
-        
+
     Returns:
         RAGRetriever实例
     """
     global _retriever
     if _retriever is None:
-        _retriever = RAGRetriever(
-            vector_store=vector_store,
-            embedding_manager=embedding_manager,
-            **kwargs
-        )
+        with _retriever_lock:
+            if _retriever is None:
+                _retriever = RAGRetriever(
+                    vector_store=vector_store,
+                    embedding_manager=embedding_manager,
+                    **kwargs
+                )
     return _retriever

@@ -10,7 +10,7 @@ import argparse
 from pathlib import Path
 
 # 添加项目路径
-sys.path.insert(0, '/mnt/workspace/annual_report_assistant')
+sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from src.core.assistant import AnnualReportAssistant
 
@@ -108,7 +108,6 @@ def check_knowledge_base():
     """检查知识库状态"""
     try:
         # 直接使用向量存储，不加载 LLM
-        sys.path.insert(0, '/mnt/workspace/annual_report_assistant')
         from src.rag.vector_store import ChromaVectorStore
         from src.rag.embedding import EmbeddingManager
         import torch

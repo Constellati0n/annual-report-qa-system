@@ -22,6 +22,12 @@ import json
 from src.core.assistant import AnnualReportAssistant
 from src.prompts import AnalysisType
 from src.core.config import get_config
+from api.react_agent_api import router as agent_router, init_agent
+from api.context import get_app_context
+
+
+def get_assistant() -> Optional[AnnualReportAssistant]:
+    return get_app_context().get("assistant")
 
 # 配置日志
 logging.basicConfig(level=logging.INFO)
@@ -29,9 +35,6 @@ logger = logging.getLogger(__name__)
 
 # 加载配置
 config = get_config()
-
-# 全局助手实例
-assistant: Optional[AnnualReportAssistant] = None
 
 
 class AnalyzeRequest(BaseModel):
@@ -82,19 +85,23 @@ class KnowledgeBaseStats(BaseModel):
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """应用生命周期管理 - Qwen3 版本"""
-    global assistant
+    ctx = get_app_context()
     
     # 启动时初始化助手
     logger.info("初始化年报分析助手 (Qwen3)...")
     try:
         # Qwen3 配置
-        model_path = os.getenv("MODEL_PATH", "/mnt/workspace/models/finetuned")
-        base_model = os.getenv("BASE_MODEL", "/mnt/workspace/models/llm/qwen/Qwen3-8B")
+        model_path = os.getenv("MODEL_PATH")
+        base_model = os.getenv("BASE_MODEL")
         vector_store_path = os.getenv("VECTOR_STORE_PATH", "./data/vector_db")
         use_rag = os.getenv("USE_RAG", "true").lower() == "true"
         load_in_4bit = os.getenv("LOAD_IN_4BIT", "false").lower() == "true"
         max_length = int(os.getenv("MAX_LENGTH", "32768"))  # Qwen3 支持 32K
         enable_thinking = os.getenv("ENABLE_THINKING", "true").lower() == "true"
+
+        if not model_path and not base_model:
+            logger.error("未配置模型路径，请设置环境变量 MODEL_PATH 或 BASE_MODEL")
+            raise ValueError("未配置模型路径，请设置环境变量 MODEL_PATH 或 BASE_MODEL")
         
         logger.info(f"模型路径: {model_path}")
         logger.info(f"基础模型: {base_model}")
@@ -105,19 +112,23 @@ async def lifespan(app: FastAPI):
         logger.info(f"思考模式: {enable_thinking}")
         
         # 验证模型路径 - 如果finetuned路径不存在，使用基础模型
-        if not os.path.exists(model_path):
+        if model_path and not os.path.exists(model_path):
             logger.warning(f"微调模型路径不存在: {model_path}")
+            model_path = None
+        if not model_path and base_model:
             if os.path.exists(base_model):
                 logger.info(f"使用基础模型: {base_model}")
                 model_path = base_model
             else:
-                logger.error(f"基础模型路径也不存在: {base_model}")
-                raise FileNotFoundError(f"模型路径不存在: {model_path} 和 {base_model}")
+                logger.error(f"基础模型路径不存在: {base_model}")
+                raise FileNotFoundError(f"模型路径不存在: {base_model}")
+        if not model_path:
+            raise FileNotFoundError("未找到可用的模型路径")
         
         # 使用 Qwen3 客户端
         from client.llm_chat_qwen3 import Qwen3ChatClient
         
-        assistant = AnnualReportAssistant(
+        ctx.set("assistant", AnnualReportAssistant(
             model_path=model_path,
             base_model=base_model,
             vector_store_path=vector_store_path,
@@ -125,8 +136,14 @@ async def lifespan(app: FastAPI):
             load_in_4bit=load_in_4bit,
             max_length=max_length,
             enable_thinking=enable_thinking
-        )
+        ))
         logger.info("年报分析助手 (Qwen3) 初始化完成")
+
+        # 初始化 ReAct Agent（可选，失败不影响主服务）
+        try:
+            init_agent()
+        except Exception as e:
+            logger.warning("ReAct Agent 初始化失败（不影响主服务）: %s", e)
     except Exception as e:
         logger.error(f"初始化失败: {e}")
         raise
@@ -154,6 +171,9 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# 注册 ReAct Agent 路由
+app.include_router(agent_router)
+
 
 @app.get("/")
 async def root():
@@ -170,7 +190,7 @@ async def health_check():
     """健康检查"""
     return {
         "status": "healthy",
-        "assistant_ready": assistant is not None
+        "assistant_ready": get_assistant() is not None
     }
 
 
@@ -181,12 +201,12 @@ async def analyze(request: AnalyzeRequest):
     
     分析年报相关问题，支持多种分析类型
     """
-    if assistant is None:
+    if get_assistant() is None:
         raise HTTPException(status_code=503, detail="服务未就绪")
     
     try:
         # 执行分析
-        result = assistant.analyze(
+        result = get_assistant().analyze(
             question=request.question,
             company=request.company,
             year=request.year,
@@ -197,7 +217,7 @@ async def analyze(request: AnalyzeRequest):
         # 检测分析类型
         analysis_type = request.analysis_type
         if not analysis_type:
-            analysis_type = assistant.prompt_manager.detect_analysis_type(request.question).value
+            analysis_type = get_assistant().prompt_manager.detect_analysis_type(request.question).value
         
         return AnalyzeResponse(
             success=True,
@@ -221,11 +241,11 @@ async def analyze_financial(request: FinancialAnalysisRequest):
     
     对公司进行全面的财务分析
     """
-    if assistant is None:
+    if get_assistant() is None:
         raise HTTPException(status_code=503, detail="服务未就绪")
     
     try:
-        result = assistant.analyze_financial(
+        result = get_assistant().analyze_financial(
             company=request.company,
             year=request.year,
             metrics=request.metrics
@@ -252,11 +272,11 @@ async def compare_companies(request: CompareRequest):
     
     对比多家公司的财务和经营情况
     """
-    if assistant is None:
+    if get_assistant() is None:
         raise HTTPException(status_code=503, detail="服务未就绪")
     
     try:
-        result = assistant.compare_companies(
+        result = get_assistant().compare_companies(
             companies=request.companies,
             metrics=request.metrics
         )
@@ -285,11 +305,11 @@ async def assess_risk(
     
     评估投资风险
     """
-    if assistant is None:
+    if get_assistant() is None:
         raise HTTPException(status_code=503, detail="服务未就绪")
     
     try:
-        result = assistant.assess_risk(company=company, year=year)
+        result = get_assistant().assess_risk(company=company, year=year)
         
         return {
             "success": True,
@@ -315,11 +335,11 @@ async def summarize_report(
     
     提取年报关键信息摘要
     """
-    if assistant is None:
+    if get_assistant() is None:
         raise HTTPException(status_code=503, detail="服务未就绪")
     
     try:
-        result = assistant.summarize_report(company=company, year=year)
+        result = get_assistant().summarize_report(company=company, year=year)
         
         return {
             "success": True,
@@ -345,11 +365,11 @@ async def investment_advice(
     
     提供投资建议和估值分析
     """
-    if assistant is None:
+    if get_assistant() is None:
         raise HTTPException(status_code=503, detail="服务未就绪")
     
     try:
-        result = assistant.investment_advice(company=company, year=year)
+        result = get_assistant().investment_advice(company=company, year=year)
         
         return {
             "success": True,
@@ -370,11 +390,11 @@ async def get_knowledge_base_stats():
     """
     获取知识库统计信息
     """
-    if assistant is None:
+    if get_assistant() is None:
         raise HTTPException(status_code=503, detail="服务未就绪")
     
     try:
-        stats = assistant.get_knowledge_base_stats()
+        stats = get_assistant().get_knowledge_base_stats()
         return {
             "success": True,
             "data": stats
@@ -401,7 +421,7 @@ async def add_document(
     
     上传年报PDF文件
     """
-    if assistant is None:
+    if get_assistant() is None:
         raise HTTPException(status_code=503, detail="服务未就绪")
     
     try:
@@ -425,7 +445,7 @@ async def add_document(
         
         # 后台任务：处理文档
         def process_document():
-            assistant.add_documents_to_knowledge_base(
+            get_assistant().add_documents_to_knowledge_base(
                 documents_path=str(file_path),
                 metadata=metadata
             )
@@ -491,14 +511,14 @@ async def chat(request: AnalyzeRequest):
     
     支持SSE流式输出
     """
-    if assistant is None:
+    if get_assistant() is None:
         raise HTTPException(status_code=503, detail="服务未就绪")
     
     try:
         # 检查是否请求流式输出
         if request.stream:
             # 执行分析并获取生成器
-            generator = assistant.analyze(
+            generator = get_assistant().analyze(
                 question=request.question,
                 company=request.company,
                 year=request.year,
@@ -528,7 +548,7 @@ async def chat(request: AnalyzeRequest):
         
         else:
             # 非流式输出
-            result = assistant.analyze(
+            result = get_assistant().analyze(
                 question=request.question,
                 company=request.company,
                 year=request.year,

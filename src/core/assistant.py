@@ -34,7 +34,7 @@ class AnnualReportAssistant:
     def __init__(
         self,
         model_path: Optional[str] = None,
-        base_model: str = "/mnt/workspace/models/llm/qwen/Qwen3-8B",
+        base_model: Optional[str] = None,
         vector_store_path: str = "./data/vector_db",
         use_rag: bool = True,
         load_in_4bit: bool = False,  # Qwen3 默认使用 bfloat16
@@ -489,7 +489,7 @@ def main():
     parser = argparse.ArgumentParser(description="年报分析助手 - Qwen3-8B")
     parser.add_argument("--model-path", type=str, default=None,
                        help="微调模型路径（PEFT adapter）")
-    parser.add_argument("--base-model", type=str, default="/mnt/workspace/models/llm/qwen/Qwen3-8B",
+    parser.add_argument("--base-model", type=str, default=None,
                        help="基础模型路径")
     parser.add_argument("--vector-store", type=str, default="./data/vector_db",
                        help="向量数据库路径")

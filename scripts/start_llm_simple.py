@@ -14,7 +14,7 @@ import uvicorn
 from transformers import AutoTokenizer, AutoModelForCausalLM
 
 # 配置
-MODEL_PATH = "/mnt/workspace/models/finetuned"
+MODEL_PATH = os.getenv("MODEL_PATH", os.getenv("BASE_MODEL"))
 PORT = int(os.getenv("LLM_PORT", 8000))
 HOST = os.getenv("LLM_HOST", "0.0.0.0")
 

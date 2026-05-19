@@ -4,8 +4,9 @@
 """
 import sys
 import os
+from pathlib import Path
 
-sys.path.insert(0, '/mnt/workspace/annual_report_assistant')
+sys.path.insert(0, str(Path(__file__).parent.parent))
 
 def verify_and_fix():
     try:

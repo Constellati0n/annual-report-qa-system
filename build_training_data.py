@@ -5,6 +5,7 @@
 import json
 import random
 import logging
+import os
 from pathlib import Path
 from collections import defaultdict
 
@@ -218,8 +219,9 @@ def generate_qa_pairs_from_chunk(chunk_content: str, metadata: dict, idx: int) -
 
 
 def main():
-    chunk_file = "/mnt/workspace/annual_report_assistant/data/processed/sampled_chunks.json"
-    output_dir = "/mnt/workspace/annual_report_assistant/data/train"
+    project_root = Path(__file__).parent
+    chunk_file = os.getenv("CHUNK_FILE", str(project_root / "data" / "processed" / "sampled_chunks.json"))
+    output_dir = os.getenv("TRAIN_OUTPUT_DIR", str(project_root / "data" / "train"))
     Path(output_dir).mkdir(parents=True, exist_ok=True)
     
     logger.info(f"Loading chunks from {chunk_file}...")

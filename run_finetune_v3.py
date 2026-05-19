@@ -37,7 +37,7 @@ logger = logging.getLogger(__name__)
 
 @dataclass
 class FinetuneConfig:
-    model_name: str = "/mnt/workspace/models/llm/qwen/Qwen3-8B"
+    model_name: str = field(default_factory=lambda: os.getenv("BASE_MODEL", "Qwen/Qwen3-8B"))
     output_dir: str = "./models/llm_finetuned_v2"
     train_file: str = "./data/train/train_v2.json"
     validation_file: str = "./data/train/val_v2.json"
@@ -233,7 +233,8 @@ class AnnualReportTrainer:
 
 
 def main():
-    os.chdir("/mnt/workspace/annual_report_assistant")
+    project_root = Path(__file__).parent
+    os.chdir(str(project_root))
     
     config = FinetuneConfig()
     

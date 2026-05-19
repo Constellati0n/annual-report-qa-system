@@ -19,21 +19,21 @@ class ModelChecker:
     MODELS = {
         "llm": {
             "name": "Qwen3-8B",
-            "path": "/mnt/workspace/models/llm/qwen/Qwen3-8B",
+            "path": os.getenv("LLM_MODEL_PATH", "./models/llm/qwen/Qwen3-8B"),
             "hf_repo": "Qwen/Qwen3-8B",
             "required_files": ["config.json", "tokenizer.json", "model.safetensors.index.json"],
             "description": "通义千问3-8B 基础语言模型"
         },
         "embedding": {
             "name": "Qwen3-Embedding-0.6B",
-            "path": "/mnt/workspace/models/embedding/qwen/Qwen3-Embedding-0.6B",
+            "path": os.getenv("EMBEDDING_MODEL_PATH", "./models/embedding/qwen/Qwen3-Embedding-0.6B"),
             "hf_repo": "Qwen/Qwen3-Embedding-0.6B",
             "required_files": ["config.json", "tokenizer.json"],
             "description": "通义千问3-Embedding-0.6B 向量化模型"
         },
         "reranker": {
             "name": "Qwen3-Reranker-0.6B",
-            "path": "/mnt/workspace/models/reranker/qwen/Qwen3-Reranker-0.6B",
+            "path": os.getenv("RERANKER_MODEL_PATH", "./models/reranker/qwen/Qwen3-Reranker-0.6B"),
             "hf_repo": "Qwen/Qwen3-Reranker-0.6B",
             "required_files": ["config.json", "tokenizer.json"],
             "description": "通义千问3-Reranker-0.6B 重排序模型"
